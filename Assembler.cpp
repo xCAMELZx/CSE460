@@ -41,47 +41,47 @@ void Assembler::assemble(string file)
 		if(line[0] == '!' || line.empty())
 			goto skip;
 		else if(rd < 0 && rs < 0)
-				instr = op[opcode] << 11;
+				instruction = op[opcode] << 11;
 		else if (rd >= 0 && rd < 256 && rs < 0 &&
 					(opcode == "call" || opcode == "jumpg" || opcode == "jumpe" || opcode == "jumpl" || opcode == "jump"))//opcode ADDR
-						instr = (op[opcode] << 11) + rd;
+						instruction = (op[opcode] << 11) + rd;
 		else if (rd >= 0 && rd < 4 && (opcode == "compl" || opcode == "shl" || opcode == "shla" ||
 					opcode == "shr" || opcode == "shra" || opcode == "getstat" || opcode == "putstat" ||
 					opcode == "read" || opcode == "write"))//opcode RD
 				{
-					instr = op[opcode] << 11;
-					instr += rd << 9;
+					instruction = op[opcode] << 11;
+					instruction += rd << 9;
 				}
 		else if( rd >= 0 && rd < 4 && rs >= 0 && rs < 128 && (opcode == "loadi" || opcode == "addci" ||
 					opcode == "subi" || opcode == "subci" || opcode == "addi" || opcode == "xori" ||
 					opcode == "compri" || opcode == "andi"))   //opcode RD CONST where 0 =< CONST < 128
 				{
-					instr = op[opcode] << 11;
-					instr += rd << 9;
-					instr += 1 << 8; // the "I" bit which is always one in this case
-					instr += rs;
+					instruction = op[opcode] << 11;
+					instruction += rd << 9;
+					instruction += 1 << 8; // the "I" bit which is always one in this case
+					instruction += rs;
 				}
 		else if( rd >= 0 && rd < 4 && rs < 0 && rs >= -128 &&(opcode == "loadi" || opcode == "addci" ||
 					opcode == "subi" || opcode == "subci" || opcode == "addi" || opcode == "xori" ||
 					opcode == "compri" || opcode == "andi"))   //opcode RD CONST where -128 =< CONST < 0
 				{
-					instr = op[opcode] << 11;
-					instr += rd << 9;
-					instr += 1 << 9; // the "I" bit which is always one in this case
-					instr += rs;
+					instruction = op[opcode] << 11;
+					instruction += rd << 9;
+					instruction += 1 << 9; // the "I" bit which is always one in this case
+					instruction += rs;
 				}
 		else if (rd >= 0 && rd < 4 && rs >= 0 && rs < 256 && (opcode == "load" || opcode == "store"))//opcode RD ADDR
 				{
-					instr = op[opcode] << 11;
-					instr += rd << 9;
-					instr += rs;
+					instruction = op[opcode] << 11;
+					instruction += rd << 9;
+					instruction += rs;
 				}
 		else if (rd >=0 && rd < 4 && rs >= 0 && rs < 4 && (opcode == "add" || opcode == "addc" ||
 					opcode == "sub" || opcode == "subc" || opcode == "and" || opcode == "xor" || opcode == "compr"))//opcode RD RS
 				{
-					instr = op[opcode] << 11;
-					instr += rd << 9;
-					instr += rs << 6;
+					instruction = op[opcode] << 11;
+					instruction += rd << 9;
+					instruction += rs << 6;
 				}
 		else
 		{
@@ -99,7 +99,7 @@ void Assembler::assemble(string file)
 			exit(1);
 		}
 
-		output << instr << endl;
+		output << instruction << endl;
 
 		skip:
 		getline(assemblyProgram, line);

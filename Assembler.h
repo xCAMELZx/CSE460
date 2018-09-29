@@ -18,7 +18,7 @@ public:
 	void assemble(string);
 
 private:
-	int instr;
+	int instruction;
 	string opcode,line,outputName;
 	fstream assemblyProgram; // used to read .s
 	ofstream output;//used to write .o

@@ -1,6 +1,6 @@
 #include "VirtualMachine.h"
 
-void VirtualMachine::setcarry()
+void VirtualMachine::setCarry()
 {
 
 	if(r[objCode.f1.RD] & 0x00010000)
@@ -9,7 +9,7 @@ void VirtualMachine::setcarry()
 		sr = sr & 0x0000001E; //else carry is 0
 }
 
-bool VirtualMachine::getcarry()	//return 1 if carry flag is set
+bool VirtualMachine::getCarry()	//return 1 if carry flag is set
 {
 	if (sr & 1)
 		return 1;
@@ -17,7 +17,7 @@ bool VirtualMachine::getcarry()	//return 1 if carry flag is set
 		return 0;
 }
 
-void VirtualMachine::run(string file)
+void VirtualMachine::execute(string file)
 {
 	int temp;
 	wfile.assign(file,0,file.length()-2);
@@ -28,11 +28,11 @@ void VirtualMachine::run(string file)
 	file.erase(file.end()-2,file.end());
 	file += ".o";
 
-	myfile.open(file.c_str(), ios::in);//open .o file for reading
-	myfile2.open(rfile.c_str(),ios::in);//open .in file for reading
-	output.open(wfile.c_str(), ios::out);//opening .out file for writing
+	dotOfile.open(file.c_str(), ios::in);//open .o file for reading
+	dotINfile.open(rfile.c_str(),ios::in);//open .in file for reading
+	dotOUTfile.open(wfile.c_str(), ios::out);//opening .out file for writing
 
-	for(; myfile >> temp; limit++) //loading mem with program
+	for(; dotOfile >> temp; limit++) //loading mem with program
 		mem[limit] = temp;
 
 	for(;;)//entering infinit loop of fetching ins
@@ -44,17 +44,17 @@ void VirtualMachine::run(string file)
 
 		if(sp < (limit + 6))
 		{
-			output << "Memory is full!\n";
+			dotOUTfile << "Memory is full!\n";
 			break;
 		}
 
 		if(objCode.i == 49152) break;
 	}
-	output << "Clock cycles: " << clock << endl;
+	dotOUTfile << "Clock cycles: " << clock << endl;
 
-	output.close();
-	myfile.close();
-	myfile2.close();
+	dotOUTfile.close();
+	dotOfile.close();
+	dotINfile.close();
 }
 
 VirtualMachine::VirtualMachine()
@@ -106,16 +106,16 @@ void VirtualMachine::store()
 void VirtualMachine::add()
 {
 	clock += 1;
-	if ( objCode.f1.I == 0 )  //I = 0
+	if ( objCode.f1.I == 0 )//I = 0
 	{
 
 		if(objCode.f1.RD >= 0 && objCode.f1.RS >=0 && ((objCode.f1.RD + objCode.f1.RS) < 0))
-			sr = sr | 0x00000010;    //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f1.RD < 0 && objCode.f1.RS < 0 && ((objCode.f1.RD + objCode.f1.RS) >= 0))
 			sr = sr | 0x00000010;
 
 		r[objCode.f1.RD] += r[objCode.f1.RS];
-		setcarry();
+		setCarry();
      }
 	else {
 
@@ -125,7 +125,7 @@ void VirtualMachine::add()
 			sr = sr | 0x00000010;
 
 		r[objCode.f3.RD] += objCode.f3.CONST;
-		setcarry();
+		setCarry();
 	}
 }
 
@@ -135,88 +135,88 @@ void VirtualMachine::addc()
 	if ( objCode.f1.I == 0 ) //I=0
 	{
 		if(objCode.f1.RD >= 0 && objCode.f1.RS >=0 && ((objCode.f1.RD + objCode.f1.RS) < 0))
-			sr = sr | 0x00000010;    //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f1.RD < 0 && objCode.f1.RS < 0 && ((objCode.f1.RD + objCode.f1.RS) >= 0))
 			sr = sr | 0x00000010;
 
-		if ( getcarry() )
+		if ( getCarry() )
 			r[objCode.f1.RD] += r[objCode.f1.RS] + 1;
-		else   //Carry is not set
+		else//Carry is not set
 			r[objCode.f1.RD] += r[objCode.f1.RS];
 
-		setcarry();
+		setCarry();
     }
-	else  //I=1
+	else //I=1
 	{
 		if(objCode.f3.RD >= 0 && objCode.f3.CONST >=0 && ((objCode.f3.RD + objCode.f3.CONST) < 0))
-			sr = sr | 0x00000010;   //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f3.RD < 0 && objCode.f3.CONST < 0 && ((objCode.f3.RD + objCode.f3.CONST) >= 0))
 			sr = sr | 0x00000010;
 
-		if ( getcarry() )
+		if ( getCarry() )
 			r[objCode.f3.RD] += objCode.f3.CONST + 1;
 		else//carry is not set
 			r[objCode.f3.RD] += objCode.f3.CONST;
 
-		setcarry();
+		setCarry();
 	}
 }
 
 void VirtualMachine::sub()
 {
 	clock += 1;
-	if ( objCode.f1.I == 0 )   //I=0
+	if ( objCode.f1.I == 0 )//I=0
 	{
 		if(objCode.f1.RD >= 0 && objCode.f1.RS >=0 && ((objCode.f1.RD + objCode.f1.RS) < 0))
-			sr = sr | 0x00000010;    //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f1.RD < 0 && objCode.f1.RS < 0 && ((objCode.f1.RD + objCode.f1.RS) >= 0))
 			sr = sr | 0x00000010;
 
 		r[objCode.f1.RD] -= r[objCode.f1.RS];
-		setcarry();
+		setCarry();
    }
-	else   //I=1
+	else//I=1
 	{
 		if(objCode.f3.RD >= 0 && objCode.f3.CONST >=0 && ((objCode.f3.RD + objCode.f3.CONST) < 0))
-			sr = sr | 0x00000010;   //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f3.RD < 0 && objCode.f3.CONST < 0 && ((objCode.f3.RD + objCode.f3.CONST) >= 0))
 			sr = sr | 0x00000010;
 
 		r[objCode.f3.RD] -= objCode.f3.CONST;
-		setcarry();
+		setCarry();
 	}
 }
 
 void VirtualMachine::subc()
 {
 	clock += 1;
-	if ( objCode.f1.I == 0 )  //I=0
+	if ( objCode.f1.I == 0 )//I=0
 	{
 		if(objCode.f1.RD >= 0 && objCode.f1.RS >=0 && ((objCode.f1.RD + objCode.f1.RS) < 0))
-			sr = sr | 0x00000010;   //seting overflow flag
+			sr = sr | 0x00000010;//seting overflow flag
 		else if(objCode.f1.RD < 0 && objCode.f1.RS < 0 && ((objCode.f1.RD + objCode.f1.RS) >= 0))
 			sr = sr | 0x00000010;
 
-		if ( getcarry() )
+		if ( getCarry() )
 			r[objCode.f1.RD] -= r[objCode.f1.RS] - 1;
-		else     //no carry!
+		else//no carry
 			r[objCode.f1.RD] -= r[objCode.f1.RS];
 
-		setcarry();
+		setCarry();
     }
-	else  //I=1
+	else //I=1
 	{
       if(objCode.f3.RD >= 0 && objCode.f3.CONST >=0 && ((objCode.f3.RD + objCode.f3.CONST) < 0))
-         sr = sr | 0x00000010;   //seting overflow flag
+         sr = sr | 0x00000010;//seting overflow flag
       else if(objCode.f3.RD < 0 && objCode.f3.CONST < 0 && ((objCode.f3.RD + objCode.f3.CONST) >= 0))
          sr = sr | 0x00000010;
 
-		if ( getcarry() )
+		if ( getCarry() )
 			r[objCode.f3.RD] -= objCode.f3.CONST - 1;
-		else   //no carry
+		else//no carry
 			r[objCode.f3.RD] -= objCode.f3.CONST;
 
-		setcarry();
+		setCarry();
 	}
 }
 
@@ -249,30 +249,30 @@ void VirtualMachine::shl()
 {
 	clock += 1;
 	r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-	setcarry();
+	setCarry();
 }
 
 void VirtualMachine::shla()
 {
 	clock += 1;
-	if ( r[objCode.f1.RD] < 0 ) {    //check if r[RD] is negative
+	if ( r[objCode.f1.RD] < 0 ) {//check if r[RD] is negative
 		r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-		r[objCode.f1.RD] = r[objCode.f1.RD] | 0x80000000; //fixing the sign bit to 1
-	}    //r[RD] >= 0
+		r[objCode.f1.RD] = r[objCode.f1.RD] | 0x80000000;//fixing the sign bit to 1
+	}//r[RD] >= 0
 	else
 	{
 		r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-		r[objCode.f1.RD] = r[objCode.f1.RD] & 0x7FFFFFFF;  //fixing the sign bit to 0
+		r[objCode.f1.RD] = r[objCode.f1.RD] & 0x7FFFFFFF;//fixing the sign bit to 0
 	}
 
-	setcarry();
+	setCarry();
 }
 
 void VirtualMachine::shr()
 {
 	clock += 1;
-	if ( r[objCode.f1.RD] & 1) //check if 1st bit is 1
-		sr = sr | 1; //set carry if 1st bit is 1
+	if ( r[objCode.f1.RD] & 1)//check if 1st bit is 1
+		sr = sr | 1;//set carry if 1st bit is 1
 
 	r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
 }
@@ -280,12 +280,12 @@ void VirtualMachine::shr()
 void VirtualMachine::shra()
 {
 	clock += 1;
-	if(r[objCode.f1.RD] & 1) // check if 1st bit is 1
-		sr = sr | 1;   //set carry if 1st bit is 1
+	if(r[objCode.f1.RD] & 1)// check if 1st bit is 1
+		sr = sr | 1;//set carry if 1st bit is 1
 
-	if ( r[objCode.f1.RD] < 0 ) { //check if r[RD] is negative
+	if ( r[objCode.f1.RD] < 0 ) {//check if r[RD] is negative
 		r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
-		r[objCode.f1.RD] = r[objCode.f1.RD] | 0x80000000;    //fixing the sign bit to 1
+		r[objCode.f1.RD] = r[objCode.f1.RD] | 0x80000000;//fixing the sign bit to 1
 	}
 		else r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
 }
@@ -293,10 +293,10 @@ void VirtualMachine::shra()
 void VirtualMachine::compr()
 {
 	clock += 1;
-	if ( objCode.f1.I == 0 ) { //I=0
-		if (r[objCode.f1.RD] < r[objCode.f1.RS]) {   // less
-			sr = sr | 8;    //set less flag
-			sr = sr & 0x00000019;   //reset greater, equal flag
+	if ( objCode.f1.I == 0 ) {//I=0
+		if (r[objCode.f1.RD] < r[objCode.f1.RS]) {// less
+			sr = sr | 8;//set less flag
+			sr = sr & 0x00000019;//reset greater, equal flag
 		}
 		else if (r[objCode.f1.RD] == r[objCode.f1.RS]) {//equal
 			sr = sr | 4;//set equal flag
@@ -390,13 +390,13 @@ void VirtualMachine::return_()
 void VirtualMachine::read()
 {
 	clock += 28;
-	myfile2 >> r[objCode.f1.RD];//read from .in file and put in r[RD]
+	dotINfile >> r[objCode.f1.RD];//read from .in file and put in r[RD]
 }
 
 void VirtualMachine::write()
 {
 	clock += 28;
-	output << r[objCode.f1.RD] << endl;//write r[RD] in .out file
+	dotOUTfile << r[objCode.f1.RD] << endl;//write r[RD] in .out file
 }
 
 void VirtualMachine::halt()

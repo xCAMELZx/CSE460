@@ -72,9 +72,9 @@ class VirtualMachine{
 		void halt();
 		void noop();
 
-		void setcarry();		//function to set carry flag if needed
-		bool getcarry();		//function to grub carry if carry flag is set
-		void run(string);
+		void setCarry();		//function to set carry flag if needed
+		bool getCarry();		//function to grub carry if carry flag is set
+		void execute(string);
 
 	private:
 		typedef void (VirtualMachine::*FP)();
@@ -82,9 +82,9 @@ class VirtualMachine{
 		instruction objCode;
 		string wfile;
 		string rfile;
-		ifstream myfile;		//used for .o
-		ifstream myfile2;		//used for .in
-		ofstream output; 		//used for .out
+		ifstream dotOfile;		//used for .o
+		ifstream dotINfile;		//used for .in
+		ofstream dotOUTfile; 		//used for .out
 		int ir,sr,limit,pc,base,sp,clock;
 		vector<FP> fmap;
 

@@ -32,7 +32,7 @@ void VirtualMachine::execute(string file) {
     for (; dotOfile >> temp; limit++) // loading mem with program
         mem[limit] = temp;
 
-    for (;;) // entering infinit loop of fetching ins
+    for (;;) // entering infinite loop of fetching ins
     {
         ir = mem[pc];
         pc++;

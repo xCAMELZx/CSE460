@@ -1,92 +1,37 @@
+/*
+Yousef Jarrar, Nicholas Chiodini
+CSE 460 Dr. Z
+Due Date: October 15th, 2018
+Description: Virtual Machine Header File.
+A constructer is used to define functions like memory size, register size,
+base, limit, program counter, instruction register, stack point
+and getting the clock time
+*/
+
+
+
 #ifndef VIRTUALMACHINE_H
 #define VIRTUALMACHINE_H
 
-#include <iostream>
 #include <fstream>
-#include <string>
 #include <vector>
-#include <map>
 
 using namespace std;
 
-class format1 {
- public:
-  unsigned UNUSED : 6;  // UNUSED[5:0]
-  unsigned RS : 2;  // RS[7:6]
-  unsigned I : 1;  // I[8]
-  unsigned RD : 2;  // RD[10:9]
-  unsigned OP : 5;  // OP[15:11]
-};
-
-class format2 {
- public:
-  unsigned ADDR : 8;  // ADDR[7:0]
-  unsigned I : 1;  // I[8]
-  unsigned RD : 2;  // RD[10:9]
-  unsigned OP : 5;  // OP[15:11]
-};
-
-class format3 {
- public:
-  int CONST : 8;  // CONST[7:0]
-  unsigned I : 1;  // I[8]
-  unsigned RD : 2;  // RD[10:9]
-  unsigned OP : 5;  // OP[15:11]
-};
-
-union instruction {
-  int i;
-  format1 f1;
-  format2 f2;
-  format3 f3;
-};
-
-class VirtualMachine {
- public:
-  VirtualMachine();
-
-  void load();
-  void store();
-  void add();
-  void addc();
-  void sub();
-  void subc();
-  void and_();
-  void xor_();
-  void compl_();
-  void shl();
-  void shla();
-  void shr();
-  void shra();
-  void compr();
-  void getstat();
-  void putstat();
-  void jump();
-  void jumpl();
-  void jumpe();
-  void jumpg();
-  void call();
-  void return_();
-  void read();
-  void write();
-  void halt();
-  void noop();
-
-  void setCarry();  // function to set carry flag if needed
-  bool getCarry();  // function to grub carry if carry flag is set
-  void execute(string);
-
- private:
-  typedef void (VirtualMachine::*FP)();
-  vector<int> mem, r;
-  instruction objCode;
-  string wfile;
-  string rfile;
-  ifstream dotOfile;  // used for .o
-  ifstream dotINfile;  // used for .in
-  ofstream dotOUTfile;  // used for .out
-  int ir, sr, limit, pc, base, sp, clock;
-  vector<FP> fmap;
-};
+class VirtualMachine { //Constructors for VM
+    int msize; //memory size
+    int rsize; //register size
+    int pc, ir, sr, sp, clock;
+    vector<int> mem;
+    vector<int> r;
+    int base, limit;
+public:
+    VirtualMachine(): msize(256), rsize(4), clock(0) { // Size of Memory = 256
+      //Register from r[0]-r[3] || Initialize clock to 0
+      mem.reserve(msize); r.reserve(rsize);
+    }
+    void run(fstream&, fstream&, fstream&);
+    int get_clock();
+}; // VirtualMachine
 
 #endif

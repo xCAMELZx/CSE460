@@ -1,73 +1,77 @@
+/*
+Yousef Jarrar, Nicholas Chiodini
+CSE 460 Dr. Z
+Due Date: October 15th, 2018
+Description: This is the header file for the Assembler Program
+The header file contains a Assembler class that will define the assembler and
+the opCodes to go with it. We need to watch for predefined functions like
+read, return write. As they are used in C++
+*/
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
-#include <iostream>
 #include <fstream>
 #include <sstream>
 #include <string>
 #include <map>
-#include <cstdlib>
 #include <stdexcept>
 
 using namespace std;
 
 class NullPointerException: public runtime_error {
-    public: NullPointerException(): runtime_error("An error has occured") {}
+public:
+NullPointerException(): runtime_error("Null Function Pointer") {}
 };
 
 class Assembler {
-    private:
-        typedef void(Assembler:: * FP)(string);
+typedef int (Assembler::*FP)(istringstream &);
+map <string, FP> jumpTable;
 
-    // Instruction Set
-    void load(string i);
-    void loadi(string i);
-    void store(string i);
-    void add(string i);
-    void addi(string i);
-    void addc(string i);
-    void addci(string i);
-    void sub(string i);
-    void subi(string i);
-    void subc(string i);
-    void subci(string i);
-    void and_(string i);
-    void andi(string i);
-    void xor_(string i);
-    void xori(string i);
-    void compl_(string i);
-    void shl(string i);
-    void shla(string i);
-    void shr(string i);
-    void shra(string i);
-    void compr(string i);
-    void compri(string i);
-    void getstat(string i);
-    void putstat(string i);
-    void jump(string i);
-    void jumpl(string i);
-    void jumpe(string i);
-    void jumpg(string i);
-    void call(string i);
-    void return_(string i);
-    void read(string i);
-    void write(string i);
-    void halt(string i);
-    void noop(string i);
-
-    // Variables
-    string inputFile, outputFile;
-    map < string, FP > jumpTable;
-
-    // Check Methodology
-    void rdCHK(int RD);
-    void rsCHK(int RS);
-    void addrCHK(int ADDR);
-    void constCHK(int CONST);
-    void write(int codeBinary);
-
-    public:
-        Assembler();
-    void assemble(string fileName);
-};
+public:
+Assmbler();
+int assemble(fstream&, fstream&);
+int load (istringstream &);
+int loadi (istringstream &);
+int store (istringstream &);
+int add (istringstream &);
+int addi (istringstream &);
+int addc (istringstream &);
+int addci (istringstream &);
+int sub (istringstream &);
+int subi (istringstream &);
+int subc (istringstream &);
+int subci (istringstream &);
+int _and (istringstream &);;
+int andi (istringstream &);
+int _xor (istringstream &);
+int xori (istringstream &);
+int _compl (istringstream &);
+int shl (istringstream &);
+int shla (istringstream &);
+int shr (istringstream &);
+int shra (istringstream &);
+int compr (istringstream &);
+int compri (istringstream &);
+int getstat (istringstream &);
+int putstat (istringstream &);
+int jump (istringstream &);
+int jumpl(istringstream &);
+int jumpe (istringstream &);
+int jumpg (istringstream &);
+int call (istringstream &);
+int _return (istringstream &);
+int _read (istringstream &);
+int _write (istringstream &);
+int halt (istringstream &);
+int noop (istringstream &);
+}; //Assembler
 #endif
+
+
+
+
+
+
+
+
+}

@@ -1,681 +1,502 @@
+/*
+Yousef Jarrar, Nicholas Chiodini
+CSE 460 Dr. Z
+Due Date: October 15th, 2018
+Description: The assembler cpp file will take in the opcodes that were defined
+and will translate to object oriented code. Each operation is defined based on
+table provided to us in Phase 1.
+*/
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string>
+#include <sstream>
+
 #include "Assembler.h"
-// Call the assembler constructor. Based on the table.
-// jumpTable function comes from the "jumpTable" from Pseudo Code
-Assembler::Assembler() {
-    jumpTable["load"] = & Assembler::load;
-    jumpTable["loadi"] = & Assembler::loadi;
-    jumpTable["store"] = & Assembler::store;
-    jumpTable["add"] = & Assembler::add;
-    jumpTable["addi"] = & Assembler::addi;
-    jumpTable["addc"] = & Assembler::addc;
-    jumpTable["addci"] = & Assembler::addci;
-    jumpTable["sub"] = & Assembler::sub;
-    jumpTable["subi"] = & Assembler::subi;
-    jumpTable["subc"] = & Assembler::subc;
-    jumpTable["subci"] = & Assembler::subci;
-    jumpTable["and"] = & Assembler::and_;
-    jumpTable["andi"] = & Assembler::andi;
-    jumpTable["xor"] = & Assembler::xor_;
-    jumpTable["xori"] = & Assembler::xori;
-    jumpTable["compl"] = & Assembler::compl_;
-    jumpTable["shl"] = & Assembler::shl;
-    jumpTable["shla"] = & Assembler::shla;
-    jumpTable["shr"] = & Assembler::shr;
-    jumpTable["shra"] = & Assembler::shra;
-    jumpTable["compr"] = & Assembler::compr;
-    jumpTable["compri"] = & Assembler::compri;
-    jumpTable["getstat"] = & Assembler::getstat;
-    jumpTable["putstat"] = & Assembler::putstat;
-    jumpTable["jump"] = & Assembler::jump;
-    jumpTable["jumpe"] = & Assembler::jumpe;
-    jumpTable["jumpg"] = & Assembler::jumpg;
-    jumpTable["call"] = & Assembler::call;
-    jumpTable["return"] = & Assembler::return_;
-    jumpTable["read"] = & Assembler::read;
-    jumpTable["write"] = & Assembler::write;
-    jumpTable["halt"] = & Assembler::halt;
-    jumpTable["noop"] = & Assembler::noop;
-}
-// Converting Assembly to Binary
-void Assembler::assemble(string fileName) {
-    string barrier, opCode; // Barrier references when the Assembly code gets
-    // thrown into the conversion.
 
-    // Setting up the file names, and defining where it comes from
-    inputFile = fileName;
-    outputFile = fileName.erase(fileName.length() - 2, 2) + ".o";
-    fstream output;
+using namespace std;
 
-    // Creating the .o file for output
-    output.open(outputFile.c_str(), ios::out);
-    output.close();
-    fstream assemblyCode;
+Assembler::Assembler()
+{
+    jumpTable["load"] = &Assembler::load;
+    jumpTable["loadi"] = &Assembler::loadi;
+    jumpTable["store"] = &Assembler::store;
+    jumpTable["add"] = &Assembler::add;
+    jumpTable["addi"] = &Assembler::addi;
+    jumpTable["addc"] = &Assembler::addc;
+    jumpTable["addci"] = &Assembler::addci;
+    jumpTable["sub"] = &Assembler::sub;
+    jumpTable["subi"] = &Assembler::subi;
+    jumpTable["subc"] = &Assembler::subc;
+    jumpTable["subci"] = &Assembler::subci;
+    jumpTable["and"] = &Assembler::_and;
+    jumpTable["andi"] = &Assembler::andi;
+    jumpTable["xor"] = &Assembler::_xor;
+    jumpTable["xori"] = &Assembler::xori;
+    jumpTable["compl"] = &Assembler::_compl;
+    jumpTable["shl"] = &Assembler::shl;
+    jumpTable["shla"] = &Assembler::shla;
+    jumpTable["shr"] = &Assembler::shr;
+    jumpTable["shra"] = &Assembler::shra;
+    jumpTable["compr"] = &Assembler::compr;
+    jumpTable["compri"] = &Assembler::compri;
+    jumpTable["getstat"] = &Assembler::getstat;
+    jumpTable["putstat"] = &Assembler::putstat;
+    jumpTable["jump"] = &Assembler::jump;
+    jumpTable["jumpl"] = &Assembler::jumpl;
+    jumpTable["jumpe"] = &Assembler::jumpe;
+    jumpTable["jumpg"] = &Assembler::jumpg;
+    jumpTable["call"] = &Assembler::call;
+    jumpTable["return"] = &Assembler::_return;
+    jumpTable["read"] = &Assembler::_read;
+    jumpTable["write"] = &Assembler::_write;
+    jumpTable["halt"] = &Assembler::halt;
+    jumpTable["noop"] = &Assembler::noop;
+} // Assembler
 
-    // Open the .s file for input
-    assemblyCode.open(inputFile.c_str(), ios:: in );
+int Assembler::assemble(fstream& in, fstream& out)
+//Reads the Assembly Code from programs provided ".s" files
+{
+    string line;
+    string opCode;
+    const int success = false;
+    const int error = true;
 
-    // Check to see if the file is open
-    if (!assemblyCode.is_open()) {
-        cout << "File cannot be read" << inputFile << endl;
-        exit(0);
-    }
-    // First line of assembly must be initiated, loaded into barrier
-    getline(assemblyCode, barrier); {
-        // Repeat through entire code, and call when relevant.
-        while (!assemblyCode.eof()) {
-            if (barrier[0] == '!') {
-                getline(assemblyCode, barrier);
-                continue;
-            }
-            istringstream str(barrier.c_str());
+    int instruction;
 
-            try {
-                str >> opCode;
-                if (not jumpTable[opCode])
-                    throw NullPointerException();
-                else
-                    (this->* jumpTable[opCode])(barrier.c_str());
-            } catch (NullPointerException e) {
-                cerr << e.what() << endl;
-                exit(0);
-            }
-            getline(assemblyCode, barrier);
+    getline(in, line);
+    while (!in.eof()) {
+        istringstream str(line.c_str());
+        str >> opCode; // Takes in a string (first word) from Assembly Code
+        if (opCode[0] == '!') { // Set's the first word as the opCode
+            getline(in, line);
+            continue;
         }
-        assemblyCode.close();
-        // End of the assembler FXN
+
+        try {
+            if (not jumpTable[opCode] )
+                throw NullPointerException();
+            else instruction = (this->*jumpTable[opCode])(str);
+
+        } catch (NullPointerException e) {
+            cerr << e.what() << endl;
+            return error;
+        }
+
+        if (instruction == -1)
+            return error;
+        out << instruction << endl;
+        getline(in, line);
     }
-}
-// Next comes the write fxn,,, Binary Soure to file
-void Assembler::write(int codeBinary) {
-    fstream outFile;
-
-    // Output the file
-    outFile.open(outputFile.c_str(), ios:: in | ios::out | ios::ate);
-    // Check to see if it opened
-    if (!outFile.is_open()) {
-        cout << "FAILURE TO OPEN" << outputFile << endl;
-        exit(0);
-    }
-
-    // Instruction Code -- Write to file.
-    outFile << codeBinary << endl;
-    outFile.close();
+    return success;
 }
 
-// Checking the Register Destination Fxn -- confirming it is in range.
-void Assembler::rdCHK(int RD) {
-    if (RD > 3 || RD < 0) {
-        cout << "Register Destination is invalid" << endl;
-        exit(0);
-    }
-}
-// Checking the Register Source  -- confirming that it's within range.
-void Assembler::rsCHK(int RS) {
-    if (RS > 3 || RS < 0) {
-        cout << "Register Source is invalid" << endl;
-    }
-}
-// Checking the Address Fxn -- " .......... "
-void Assembler::addrCHK(int ADDR) {
-    if (ADDR > 255 || ADDR < 0) {
-        cout << "Address is out of range" << endl;
-        exit(0);
-    }
-}
-// Checking the Constant Fxn -- "....."
-void Assembler::constCHK(int CONST) {
-    if (CONST > 127 || CONST < -128) {
-        cout << "Constant not in range" << endl;
-        exit(1);
-    }
-}
-// Load Function
-void Assembler::load(string i) {
-    int RD, ADDR;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> ADDR;
-
-    rdCHK(RD);
-    addrCHK(ADDR);
-
-    int binary = 0; // 0000
-    binary += RD << 9;
-    binary += ADDR;
-    write(binary);
-}
-// Loadi Fxn
-void Assembler::loadi(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 0; // 0000
-    binary += RD << 9;
-    binary += I << 8;
-    if (CONST < 0) CONST = CONST & 0x00FF;
-
-    binary += CONST;
-    write(binary);
-}
-// Store Fxn
-void Assembler::store(string i) {
-    int RD, ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> ADDR;
-
-    rdCHK(RD);
-    addrCHK(ADDR);
-
-    int binary = 1; // 0001
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += ADDR;
-    write(binary);
-}
-// Add Function
-void Assembler::add(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 2; // 0010
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-    write(binary);
-}
-// Addi Fxn
-void Assembler::addi(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 2;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x00FF;
-
-    binary += CONST;
-    write(binary);
-}
-// Addc Fxn
-void Assembler::addc(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 3; // 00011
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-
-    write(binary);
-}
-// addci
-void Assembler::addci(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 3;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x00FF;
-    binary += CONST;
-
-    write(binary);
-}
-// sub FXN
-void Assembler::sub(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 4; // 00100
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-
-    write(binary);
-}
-// subi function
-void Assembler::subi(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 4;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x00FF;
-    binary += CONST;
-
-    write(binary);
-}
-// subc
-void Assembler::subc(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 5; // 00101
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-    write(binary);
-}
-// subci
-void Assembler::subci(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 5;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x0FF;
-    binary += CONST;
-    write(binary);
-}
-// and_ function
-void Assembler::and_(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 6; // 00110
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-
-    write(binary);
-}
-// andi function
-void Assembler::andi(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 6;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x0FF;
-    binary += CONST;
-    write(binary);
-}
-// xor_ fxn
-void Assembler::xor_(string i) {
-    int RD, RS, I = 0;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 7; // 00111
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-    binary += RS << 6;
-
-    write(binary);
-}
-// xori fxn
-void Assembler::xori(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 7;
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I = 8;
-
-    if (CONST < 0) CONST = CONST & 0x0FF;
-    binary += CONST;
-    write(binary);
-}
-// compl_ fxn
-void Assembler::compl_(string i) {
-    int RD, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 8; // 01000
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// shl fxn -- BITSHIFT!!! Left register value.
-void Assembler::shl(string i) {
-    int RD, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 9; // 01001
-    binary = binary << 11;
-    binary += RD << 9;
-    write(binary);
-}
-// shla fxn .. yet another bitshift ,, to the left.
-void Assembler::shla(string i) {
-    int RD, I = 0;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 10; // 01010
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// shr fxn -- bitshift to the right this time......
-void Assembler::shr(string i) {
-    int RD;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 11; // 01011
-    binary = binary << 11;
-    binary += RD << 9;
-    write(binary);
-}
-// shra function .. bitshift to right. Arithmetic register value.
-void Assembler::shra(string i) {
-    int RD;
-    string OPCODE;
-
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 12; // 01100
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// compr function -- comparison of two register values.
-void Assembler::compr(string i) {
-    int RD, RS;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> RS;
-
-    rdCHK(RD);
-    rsCHK(RS);
-
-    int binary = 13; // 01101
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += RS << 6;
-    write(binary);
-}
-// compri fxn
-void Assembler::compri(string i) {
-    int RD, CONST, I = 1;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD >> CONST;
-
-    rdCHK(RD);
-    constCHK(CONST);
-
-    int binary = 13; // 01101
-    binary = binary << 11;
-    binary += RD << 9;
-    binary += I << 8;
-
-    if (CONST < 0) CONST = CONST & 0x00FF;
-
-    binary += CONST;
-
-    write(binary);
-}
-// getstat -- puts the value in status register
-void Assembler::getstat(string i) {
-    int RD;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 14; // 01110
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// putstat -- puts register value in status register
-void Assembler::putstat(string i) {
-    int RD;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 15; // 01111
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
+/*Remember that there are 2 formats for instructions
+
+Format 1: [15:11][10:9][8][7:6][5:0]
+             OP    RD   I   RS UNUSED
+Format 2:
+          [15:11][10:9][8] [7:0]
+            OP     RD   I  ADDR/CONST
+After checking that rd and const/addr are within range
+we set the opcode and we store the instruction based on format
+ex: inst = inst | rd << 9 | addr
+*/
+
+int Assembler::load(istringstream & str)
+{
+    int rd, addr; //Defining rd, and Address
+    str >> rd >> addr; //Takes from the string and stores them
+    if (rd < 0 || rd > 3) //Checks rd is within range "0<= x =>3"
+        return -1;
+    if (addr < 0 || addr > 255) // Checks Address is within range 0 < x > 255
+        return -1;
+    int inst=0; // Set opCodes value from jumpTable
+    inst = inst | rd<<9 | addr; // Based on Formats 1 & 2 ;; Store instruction
+    return inst;
 }
 
-// jump fxn -- jumps to specified address
-void Assembler::jump(string i) {
-    int ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> ADDR;
-
-    addrCHK(ADDR);
-
-    int binary = 16; // 10000
-    binary = binary << 11;
-    binary += ADDR;
-
-    write(binary);
-}
-// jumpl -- jump function with a flag set. LESS
-void Assembler::jumpl(string i) {
-    int ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> ADDR;
-
-    addrCHK(ADDR);
-
-    int binary = 17; // 10001
-    binary = binary << 11;
-    binary += ADDR;
-
-    write(binary);
+int Assembler::loadi(istringstream & str)
+{
+    int rd, constant;  //Defining RD and Constant
+    str >> rd >> constant; // Takes from the string and stores them
+    if (rd < 0 || rd > 3) // Checks again like previous instruction
+        return -1;
+    if (constant < -128 || constant > 127) //Checks constant's range -128 < x > 127
+        return -1;
+    int inst=0;
+    inst = inst | rd<<9 | 1<<8 | (0x000000ff & constant); // Last part is I bit
+    // i << 8;
+    return inst;
 }
 
-// jumpe fxn -- same as above BUT if equal flag is set
-void Assembler::jumpe(string i) {
-    int ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> ADDR;
-
-    addrCHK(ADDR);
-
-    int binary = 18; // 10010
-    binary = binary << 11;
-    binary += ADDR;
-
-    write(binary);
-}
-// jumpg fnxn -- " ...... " Greater Flag Set.
-void Assembler::jumpg(string i) {
-    int ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> ADDR;
-
-    addrCHK(ADDR);
-
-    int binary = 19; // 10011
-    binary = binary << 11;
-    binary += ADDR;
-
-    write(binary);
-}
-// call fxn -- put address in Program Counter
-void Assembler::call(string i) {
-    int ADDR;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> ADDR;
-
-    addrCHK(ADDR);
-
-    int binary = 20; // 10100
-    binary = binary << 11;
-    binary += ADDR;
-
-    write(binary);
-}
-// return_ fxn -- pop and restore
-void Assembler::return_(string i) {
-    int binary = 21; // 10101
-    binary = binary << 11;
-
-    write(binary);
+int Assembler::store(istringstream & str)
+{
+    int rd, addr;
+    str >> rd >> addr;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=1; //Remember that the number defined is the opCode from Binary 0001
+    inst = inst<<11 | rd<<9 | addr;
+    return inst;
 }
 
-// read fxn -- takes info from the .in file into register
-void Assembler::read(string i) {
-    int RD;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 22; // 10110
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// write fxn -- put values from register into .out file
-void Assembler::write(string i) {
-    int RD;
-    string OPCODE;
-    istringstream iStream(i.c_str());
-    iStream >> OPCODE >> RD;
-
-    rdCHK(RD);
-
-    int binary = 23; // 10111
-    binary = binary << 11;
-    binary += RD << 9;
-
-    write(binary);
-}
-// halt fxn -- stops entire process
-void Assembler::halt(string i) {
-    int binary = 24; // 11000
-    binary = binary << 11;
-
-    write(binary);
+int Assembler::add(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=2; // 0010 Binary Number for 2
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
 }
 
-// noop fxn -- no operations
-void Assembler::noop(string i) {
-    int binary = 25; // 11001
-    binary = binary << 11;
+int Assembler::addi(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=2;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
 
-    write(binary);
+int Assembler::addc(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=3;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::addci(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=3;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::sub(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=4;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::subi(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=4;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::subc(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=5;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::subci(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=5;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::_and(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=6;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::andi(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=6;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::_xor(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=7;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::xori(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=7;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::_compl(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=8;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::shl(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=9;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::shla(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=10;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::shr(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=11;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::shra(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=12;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::compr(istringstream & str)
+{
+    int rd, rs;
+    str >> rd >> rs;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (rs < 0 || rs > 3)
+        return -1;
+    int inst=13;
+    inst = inst<<11 | rd<<9 | rs<<6;
+    return inst;
+}
+
+int Assembler::compri(istringstream & str)
+{
+    int rd, constant;
+    str >> rd >> constant;
+    if (rd < 0 || rd > 3)
+        return -1;
+    if (constant < -128 || constant > 127)
+        return -1;
+    int inst=13;
+    inst = inst<<11 | rd<<9 | 1<<8 | (0x000000ff & constant);
+    return inst;
+}
+
+int Assembler::getstat(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=14;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::putstat(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=15;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::jump(istringstream & str)
+{
+    int addr;
+    str >> addr;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=16;
+    inst = inst<<11 |  addr;
+    return inst;
+}
+
+int Assembler::jumpl(istringstream & str)
+{
+    int addr;
+    str >> addr;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=17;
+    inst = inst<<11 | addr;
+    return inst;
+}
+
+int Assembler::jumpe(istringstream & str)
+{
+    int addr;
+    str >> addr;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=18;
+    inst = inst<<11 | addr;
+    return inst;
+}
+
+int Assembler::jumpg(istringstream & str)
+{
+    int addr;
+    str >> addr;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=19;
+    inst = inst<<11 | addr;
+    return inst;
+}
+
+int Assembler::call(istringstream & str)
+{
+    int addr;
+    str >> addr;
+    if (addr < 0 || addr > 255)
+        return -1;
+    int inst=20;
+    inst = inst<<11 | addr;
+    return inst;
+}
+
+int Assembler::_return(istringstream & str)
+{
+    int inst=21;
+    inst = inst<<11;
+    return inst;
+}
+
+int Assembler::_read(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=22;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::_write(istringstream & str)
+{
+    int rd;
+    str >> rd;
+    if (rd < 0 || rd > 3)
+        return -1;
+    int inst=23;
+    inst = inst<<11 | rd<<9;
+    return inst;
+}
+
+int Assembler::halt(istringstream & str)
+{
+    int inst=24;
+    inst = inst<<11;
+    return inst;
+}
+
+int Assembler::noop(istringstream & str)
+{
+    int inst=25;
+    inst = inst<<11;
+    return inst;
 }

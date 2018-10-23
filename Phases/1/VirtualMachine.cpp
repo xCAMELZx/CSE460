@@ -1,396 +1,237 @@
+/*
+Yousef Jarrar, Nicholas Chiodini
+CSE 460 Dr. Z
+Due Date: October 15th, 2018
+Description: The virtual machine handles all the logic for all instructions
+Since we defined the virtual machine class, we use it to evaluate the opcode
+found in assembly programs.
+*/
+
+
+/*
+This code was supplied by Dr. Z's website, nothing was changed to hold the
+integrity for Phase II
+*/
+
+#include <iostream>
+#include <stdio.h>
+#include <string>
+#include <cstdlib>
+
 #include "VirtualMachine.h"
 
-void VirtualMachine::setCarry() {
-    if (r[objCode.f1.RD] & 0x00010000)
-        sr = sr | 1; // set carry flag if 17th bit of RD is 1
-    else
-        sr = sr & 0x0000001E; // else carry is 0
-}
+using namespace std;
 
-bool VirtualMachine::getCarry() // return 1 if carry flag is set
+int VirtualMachine::get_clock()
 {
-    if (sr & 1)
-        return 1;
-    else
-        return 0;
+    return clock;
 }
 
-void VirtualMachine::execute(string file) {
-    int temp;
-    wfile.assign(file, 0, file.length() - 2);
-    rfile = wfile;
-    rfile += ".in";
-    wfile += ".out";
+void VirtualMachine::run(fstream& objectCode, fstream& in, fstream& out)
+{
+    const int debug = false;
+    int opcode, rd, i, rs, constant, addr, j;
 
-    file.erase(file.end() - 2, file.end());
-    file += ".o";
+    base = 0;
+    for (limit = 0; objectCode >> mem[limit]; limit++); //reads the code and sets the limit
 
-    dotOfile.open(file.c_str(), ios:: in ); // open .o file for reading
-    dotINfile.open(rfile.c_str(), ios:: in ); // open .in file for reading
-    dotOUTfile.open(wfile.c_str(), ios::out); // opening .out file for writing
-
-    for (; dotOfile >> temp; limit++) // loading mem with program
-        mem[limit] = temp;
-
-    for (;;) // entering infinite loop of fetching ins
-    {
+    sr = 2;
+    sp = msize;
+    pc = 0;
+    while (pc < limit) {
         ir = mem[pc];
         pc++;
-        objCode.i = ir;
-        (this->* fmap[objCode.f1.OP])();
+        opcode = (ir&0xf800)>>11;
+        rd = (ir&0x600)>>9;
+        i = (ir&0x100)>>8;
+        rs = (ir&0xc0)>>6;
+        addr = ir&0xff;
+        constant = addr;
+        if (ir&0x80) constant |= 0xffffff00; // if neg sign extend
 
-        if (sp < (limit + 6)) {
-            dotOUTfile << "Memory is full!\n";
+        clock++;
+
+        if (opcode == 0) { /* load loadi */
+            if (i) r[rd] = constant;
+            else {
+                r[rd] = mem[addr];
+                clock += 3;
+            }
+        } else if (opcode == 1) { /* store */
+            mem[addr] = r[rd];
+            clock += 3;
+        } else if (opcode == 2) { /* add addi */
+            int sign1 = (r[rd]&0x8000)>>15;
+            int sign2;
+            if (i) {
+                sign2 = (constant&0x8000)>>15;
+                r[rd] = r[rd] + constant;
+            } else {
+                sign2 = (r[rs]&0x8000)>>15;
+                r[rd] = r[rd] + r[rs];
+            }
+            // set CARRY
+            if (r[rd]&0x10000) sr |= 01;
+            else sr &= 0x1e;
+            // set OVERFLOW
+            if (sign1 == sign2 and sign1 != (r[rd]&0x8000)>>15)
+                sr |= 0x10;
+            else
+                sr &= 0xf;
+            // sign extend
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 3) { /* addc addci */
+            if (i)
+                r[rd] = r[rd] + constant + sr&01;
+            else
+                r[rd] = r[rd] + r[rs] + sr&01;
+            if (r[rd]&0x10000) sr |= 01;
+            else sr &= 0x1e;
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 4) { /* sub subi */
+            int sign1 = (r[rd]&0x8000)>>15;
+            int sign2;
+            if (i) {
+                sign2 = (constant&0x8000)>>15;
+                r[rd] = r[rd] - constant;
+            } else {
+                sign2 = (r[rs]&0x8000)>>15;
+                r[rd] = r[rd] - r[rs];
+            }
+            // set CARRY
+            if (r[rd]&0x10000) sr |= 01;
+            else sr &= 0x1e;
+            // set OVERFLOW
+            if (sign1 != sign2 and sign2 == (r[rd]&0x8000)>>15)
+                sr |= 0x10;
+            else
+                sr &= 0xf;
+            // sign extend
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 5) { /* subc subci */
+            if (i)
+                r[rd] = r[rd] - constant - sr&01;
+            else
+                r[rd] = r[rd] - r[rs] - sr&01;
+            if (r[rd]&0x10000) sr |= 01;
+            else sr &= 0x1e;
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 6) { /* and andi */
+            if (i) r[rd] = r[rd] & constant;
+            else r[rd] = r[rd] & r[rs];
+            // sign extend
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 7) { /* xor xori */
+            if (i) r[rd] = r[rd] ^ constant;
+            else r[rd] = r[rd] ^ r[rs];
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 8) { /* compl */
+            r[rd] = ~r[rd];
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 9) { /* shl */
+            r[rd] <<= 1;
+            if (r[rd]&0x10000) sr |= 01;
+            else sr &= 0x1e;
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 10) { /* shla */
+            r[rd] <<= 1;
+            if (r[rd]&0x10000) {
+                sr |= 01;
+                r[rd] |= 0x8000;
+            } else {
+                sr &= 0x1e;
+                r[rd] &= 0x7fff;
+            }
+            if (r[rd]&0x8000) r[rd] |= 0xffff0000;
+            else r[rd] &= 0xffff;
+        } else if (opcode == 11) { /* shr */
+            r[rd] &= 0xffff;
+            if (r[rd]&01) sr |= 01;
+            else sr &= 0x1e;
+            r[rd] >>= 1;
+        } else if (opcode == 12) { /* shra */
+            if (r[rd]&01) sr |= 01;
+            else sr &= 0x1e;
+            r[rd] >>= 1;
+        } else if (opcode == 13) { /* compr  compri */
+            sr &= 021;
+            if (i) {
+                if (r[rd]<constant) sr |= 010;
+                if (r[rd]==constant) sr |= 04;
+                if (r[rd]>constant) sr |= 02;
+            } else {
+                if (r[rd]<r[rs]) sr |= 010;
+                if (r[rd]==r[rs]) sr |= 04;
+                if (r[rd]>r[rs]) sr |= 02;
+            }
+        } else if (opcode == 14) { /* getstat */
+            r[rd] = sr;
+        } else if (opcode == 15) { /* putstat */
+            sr = r[rd];
+        } else if (opcode == 16) { /* jump */
+            pc = addr;
+        } else if (opcode == 17) { /* jumpl */
+            if (sr & 010) pc = addr;
+        } else if (opcode == 18) { /* jumpe */
+            if (sr & 04) pc = addr;
+        } else if (opcode == 19) { /* jumpg */
+            if (sr & 02) pc = addr;
+        } else if (opcode == 20) { /* call */
+            if (sp < limit+6) {
+                cout << "Stack Overflow\n";
+                exit(1); // stack overflow
+            }
+            mem[--sp] = pc;
+            for (j=0; j<4; j++)
+                mem[--sp] = r[j];
+            mem[--sp] = sr;
+            pc = addr;
+            clock += 3;
+        } else if (opcode == 21) { /* return */
+            if (sp > 256-6) {
+                cout << "Stack Underflow\n";
+                exit(2); // stack underflow
+            }
+            sr = mem[sp++];
+            for (j=3; j>=0; j--)
+                r[j] = mem[sp++];
+            pc = mem[sp++];
+            clock += 3;
+        } else if (opcode == 22) { /* read */
+            in >> r[rd];
+            // assert r[rd] is in the allowed range
+            clock += 27;
+        } else if (opcode == 23) { /* write */
+            out << r[rd];
+            clock += 27;
+        } else if (opcode == 24) { /* halt */
             break;
+        } else if (opcode == 25) { /* noop */
+            /* do nothing */
+        } else {
+            cout << "Bad opcode = " << opcode << endl;
+            exit(3);
         }
-
-        if (objCode.i == 49152) break;
-    }
-    dotOUTfile << "Clock cycles: " << clock << endl;
-
-    dotOUTfile.close();
-    dotOfile.close();
-    dotINfile.close();
-}
-
-VirtualMachine::VirtualMachine() {
-    // initializing data types
-    fmap.reserve(26);
-    mem.reserve(256);
-    r.reserve(4);
-    clock = sr = base = pc = limit = 0;
-    sp = 256;
-
-    // building function map in a vector
-    fmap[0] = & VirtualMachine::load;
-    fmap[1] = & VirtualMachine::store;
-    fmap[2] = & VirtualMachine::add;
-    fmap[3] = & VirtualMachine::addc;
-    fmap[4] = & VirtualMachine::sub;
-    fmap[5] = & VirtualMachine::subc;
-    fmap[6] = & VirtualMachine::and_;
-    fmap[7] = & VirtualMachine::xor_;
-    fmap[8] = & VirtualMachine::compl_;
-    fmap[9] = & VirtualMachine::shl;
-    fmap[10] = & VirtualMachine::shla;
-    fmap[11] = & VirtualMachine::shr;
-    fmap[12] = & VirtualMachine::shra;
-    fmap[13] = & VirtualMachine::compr;
-    fmap[14] = & VirtualMachine::getstat;
-    fmap[15] = & VirtualMachine::putstat;
-    fmap[16] = & VirtualMachine::jump;
-    fmap[17] = & VirtualMachine::jumpl;
-    fmap[18] = & VirtualMachine::jumpe;
-    fmap[19] = & VirtualMachine::jumpg;
-    fmap[20] = & VirtualMachine::call;
-    fmap[21] = & VirtualMachine::return_;
-    fmap[22] = & VirtualMachine::read;
-    fmap[23] = & VirtualMachine::write;
-    fmap[24] = & VirtualMachine::halt;
-    fmap[25] = & VirtualMachine::noop;
-}
-
-void VirtualMachine::load() {
-    if (objCode.f1.I == 0) // I=0
-    {
-        r[objCode.f2.RD] = mem[objCode.f2.ADDR];
-        clock += 4;
-    } else // I = 1
-    {
-        r[objCode.f3.RD] = objCode.f3.CONST;
-        clock += 1;
-    }
-}
-
-void VirtualMachine::store() {
-    clock += 4;
-    mem[objCode.f2.ADDR] = r[objCode.f2.RD];
-}
-
-void VirtualMachine::add() {
-    clock += 1;
-    if (objCode.f1.I == 0) // I = 0
-    {
-        if (objCode.f1.RD >= 0 && objCode.f1.RS >= 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f1.RD < 0 && objCode.f1.RS < 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) >= 0))
-            sr = sr | 0x00000010;
-
-        r[objCode.f1.RD] += r[objCode.f1.RS];
-        setCarry();
-    } else {
-        if (objCode.f3.RD >= 0 && objCode.f3.CONST >= 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) < 0))
-            sr = sr | 0x00000010;
-        else if (objCode.f3.RD < 0 && objCode.f3.CONST < 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) >= 0))
-            sr = sr | 0x00000010;
-
-        r[objCode.f3.RD] += objCode.f3.CONST;
-        setCarry();
-    }
-}
-
-void VirtualMachine::addc() {
-    clock += 1;
-    if (objCode.f1.I == 0) // I=0
-    {
-        if (objCode.f1.RD >= 0 && objCode.f1.RS >= 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f1.RD < 0 && objCode.f1.RS < 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) >= 0))
-            sr = sr | 0x00000010;
-
-        if (getCarry())
-            r[objCode.f1.RD] += r[objCode.f1.RS] + 1;
-        else // Carry is not set
-            r[objCode.f1.RD] += r[objCode.f1.RS];
-
-        setCarry();
-    } else // I=1
-    {
-        if (objCode.f3.RD >= 0 && objCode.f3.CONST >= 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f3.RD < 0 && objCode.f3.CONST < 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) >= 0))
-            sr = sr | 0x00000010;
-
-        if (getCarry())
-            r[objCode.f3.RD] += objCode.f3.CONST + 1;
-        else // carry is not set
-            r[objCode.f3.RD] += objCode.f3.CONST;
-
-        setCarry();
-    }
-}
-
-void VirtualMachine::sub() {
-    clock += 1;
-    if (objCode.f1.I == 0) // I=0
-    {
-        if (objCode.f1.RD >= 0 && objCode.f1.RS >= 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f1.RD < 0 && objCode.f1.RS < 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) >= 0))
-            sr = sr | 0x00000010;
-
-        r[objCode.f1.RD] -= r[objCode.f1.RS];
-        setCarry();
-    } else // I=1
-    {
-        if (objCode.f3.RD >= 0 && objCode.f3.CONST >= 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f3.RD < 0 && objCode.f3.CONST < 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) >= 0))
-            sr = sr | 0x00000010;
-
-        r[objCode.f3.RD] -= objCode.f3.CONST;
-        setCarry();
-    }
-}
-
-void VirtualMachine::subc() {
-    clock += 1;
-    if (objCode.f1.I == 0) // I=0
-    {
-        if (objCode.f1.RD >= 0 && objCode.f1.RS >= 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f1.RD < 0 && objCode.f1.RS < 0 &&
-            ((objCode.f1.RD + objCode.f1.RS) >= 0))
-            sr = sr | 0x00000010;
-
-        if (getCarry())
-            r[objCode.f1.RD] -= r[objCode.f1.RS] - 1;
-        else // no carry
-            r[objCode.f1.RD] -= r[objCode.f1.RS];
-
-        setCarry();
-    } else // I=1
-    {
-        if (objCode.f3.RD >= 0 && objCode.f3.CONST >= 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) < 0))
-            sr = sr | 0x00000010; // seting overflow flag
-        else if (objCode.f3.RD < 0 && objCode.f3.CONST < 0 &&
-            ((objCode.f3.RD + objCode.f3.CONST) >= 0))
-            sr = sr | 0x00000010;
-
-        if (getCarry())
-            r[objCode.f3.RD] -= objCode.f3.CONST - 1;
-        else // no carry
-            r[objCode.f3.RD] -= objCode.f3.CONST;
-
-        setCarry();
-    }
-}
-
-void VirtualMachine::and_() {
-    clock += 1;
-    if (objCode.f1.I == 0) // I=0
-        r[objCode.f1.RD] = r[objCode.f1.RD] & r[objCode.f1.RS];
-    else // I=1
-        r[objCode.f3.RD] = r[objCode.f3.RD] & objCode.f3.CONST;
-}
-
-void VirtualMachine::xor_() {
-    clock += 1;
-    if (objCode.f1.I == 0)
-        r[objCode.f1.RD] = r[objCode.f1.RD] ^ r[objCode.f1.RS];
-    else
-        r[objCode.f3.RD] = r[objCode.f3.RD] ^ objCode.f3.CONST;
-}
-
-void VirtualMachine::compl_() {
-    clock += 1;
-    r[objCode.f1.RD] = ~r[objCode.f1.RD];
-}
-
-void VirtualMachine::shl() {
-    clock += 1;
-    r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-    setCarry();
-}
-
-void VirtualMachine::shla() {
-    clock += 1;
-    if (r[objCode.f1.RD] < 0) { // check if r[RD] is negative
-        r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-        r[objCode.f1.RD] =
-            r[objCode.f1.RD] | 0x80000000; // fixing the sign bit to 1
-    } // r[RD] >= 0
-    else {
-        r[objCode.f1.RD] = r[objCode.f1.RD] << 1;
-        r[objCode.f1.RD] =
-            r[objCode.f1.RD] & 0x7FFFFFFF; // fixing the sign bit to 0
-    }
-
-    setCarry();
-}
-
-void VirtualMachine::shr() {
-    clock += 1;
-    if (r[objCode.f1.RD] & 1) // check if 1st bit is 1
-        sr = sr | 1; // set carry if 1st bit is 1
-
-    r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
-}
-
-void VirtualMachine::shra() {
-    clock += 1;
-    if (r[objCode.f1.RD] & 1) // check if 1st bit is 1
-        sr = sr | 1; // set carry if 1st bit is 1
-
-    if (r[objCode.f1.RD] < 0) { // check if r[RD] is negative
-        r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
-        r[objCode.f1.RD] =
-            r[objCode.f1.RD] | 0x80000000; // fixing the sign bit to 1
-    } else
-        r[objCode.f1.RD] = r[objCode.f1.RD] >> 1;
-}
-
-void VirtualMachine::compr() {
-    clock += 1;
-    if (objCode.f1.I == 0) { // I=0
-        if (r[objCode.f1.RD] < r[objCode.f1.RS]) { // less
-            sr = sr | 8; // set less flag
-            sr = sr & 0x00000019; // reset greater, equal flag
-        } else if (r[objCode.f1.RD] == r[objCode.f1.RS]) { // equal
-            sr = sr | 4; // set equal flag
-            sr = sr & 0x00000015; // reset greater, less flags
-        } else { // greater
-            sr = sr | 2; // set greater flag
-            sr = sr & 0x00000013; // reset equal, less flags
-        }
-    } else { // compri() when I is 1
-        if (r[objCode.f3.RD] < objCode.f3.CONST) { // less
-            sr = sr | 8; // set less flag
-            sr = sr & 0x00000019; // reset greater, equal flag
-        } else if (r[objCode.f3.RD] == objCode.f3.CONST) { // equal
-            sr = sr | 4; // set equal flag
-            sr = sr & 0x00000015; // reset greater, less flags
-        } else { // greater
-            sr = sr | 2; // set greater flag
-            sr = sr & 0x00000013; // reset equal, less flags
+        if (debug) {
+            printf("ir=%d op=%d rd=%d i=%d rs=%d const=%d addr=%d\n", ir, opcode, rd, i, rs, constant, addr);
+            printf("r[0]=%d r[1]=%d r[2]=%d r[3]=%d pc=%d sr=%d sp=%d clock=%d\n\n", r[0], r[1], r[2], r[3], pc, sr, sp, clock);
+            //char c;
+            //cin>>c;
         }
     }
-}
-
-void VirtualMachine::getstat() {
-    clock += 1;
-    r[objCode.f1.RD] = sr;
-}
-
-void VirtualMachine::putstat() {
-    clock += 1;
-    sr = r[objCode.f1.RD];
-}
-
-void VirtualMachine::jump() {
-    clock += 1;
-    pc = objCode.f2.ADDR;
-}
-
-void VirtualMachine::jumpl() {
-    clock += 1;
-    if (sr & 8) // if less is set
-        pc = objCode.f2.ADDR;
-}
-
-void VirtualMachine::jumpe() {
-    clock += 1;
-    if (sr & 4) // if equal is set
-        pc = objCode.f2.ADDR;
-}
-
-void VirtualMachine::jumpg() {
-    clock += 1;
-    if (sr & 2) // if greater is set
-        pc = objCode.f2.ADDR;
-}
-
-void VirtualMachine::call() {
-    clock += 1;
-    mem[--sp] = pc; // pushing pc
-
-    for (int i = 0; i < 4; i++) // pushing r[0]~r[3]
-        mem[--sp] = r[i];
-
-    mem[--sp] = sr; // pushing sp
-
-    pc = objCode.f2.ADDR; // loading pc to jumping address
-}
-
-void VirtualMachine::return_() {
-    clock += 1;
-
-    sr = mem[sp++]; // popping sr
-
-    for (int i = 3; i > -1; i--) // popping r[0]~r[3]
-        r[i] = mem[sp++];
-
-    pc = mem[sp++]; // popping pc
-}
-
-void VirtualMachine::read() {
-    clock += 28;
-    dotINfile >> r[objCode.f1.RD]; // read from .in file and put in r[RD]
-}
-
-void VirtualMachine::write() {
-    clock += 28;
-    dotOUTfile << r[objCode.f1.RD] << endl; // write r[RD] in .out file
-}
-
-void VirtualMachine::halt() {
-    clock += 1;
-}
-
-void VirtualMachine::noop() {
-    clock += 1;
-}
+    if (debug) { //
+        for (j=0; j<limit; j++) {
+            printf("%8d", mem[j]);
+            if ((j%8)==7) printf("\n");
+        }
+        cout << endl;
+    }
+} /* main */

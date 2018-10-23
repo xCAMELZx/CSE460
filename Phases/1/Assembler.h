@@ -28,7 +28,7 @@ typedef int (Assembler::*FP)(istringstream &);
 map <string, FP> jumpTable;
 
 public:
-Assmbler();
+Assembler();
 int assemble(fstream&, fstream&);
 int load (istringstream &);
 int loadi (istringstream &);
@@ -67,11 +67,3 @@ int noop (istringstream &);
 }; //Assembler
 #endif
 
-
-
-
-
-
-
-
-}

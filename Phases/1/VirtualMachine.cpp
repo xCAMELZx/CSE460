@@ -38,7 +38,7 @@ void VirtualMachine::run(fstream& objectCode, fstream& in, fstream& out)
     sr = 2;
     sp = msize;
     pc = 0;
-    while (pc < limit) {
+    while (pc < limit) { //while pc is less than the limit, set instructors
         ir = mem[pc];
         pc++;
         opcode = (ir&0xf800)>>11;
@@ -49,7 +49,7 @@ void VirtualMachine::run(fstream& objectCode, fstream& in, fstream& out)
         constant = addr;
         if (ir&0x80) constant |= 0xffffff00; // if neg sign extend
 
-        clock++;
+        clock++; // Incrementing by +1  for every iteration
 
         if (opcode == 0) { /* load loadi */
             if (i) r[rd] = constant;

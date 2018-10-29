@@ -245,7 +245,7 @@ void VirtualMachine::run(int timeslice)
             //char c;
             //cin>>c;
         }
-        // Overflow should return from VM (?)
+        // Overflow should return from VM .. Question to ask Dr. Z
         if (sr & 0x10) {
             break;
         }

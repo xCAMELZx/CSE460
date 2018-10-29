@@ -13,6 +13,7 @@ Contains a ALU and 256 Memory
 #include <cstdlib>
 #include <cstdio>
 #include <iomanip>
+#include <climits>
 
 #include "Assembler.h"
 #include "VirtualMachine.h"

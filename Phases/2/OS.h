@@ -5,6 +5,7 @@
 #include <list>
 #include <queue>
 #include <string>
+#include <climits>
 
 #include "VirtualMachine.h"
 #include "Assembler.h"
@@ -36,8 +37,12 @@ class PCB {
     int io_time;   int io_time_begin;
 public:
     PCB(const string &p, const int &b, const int &l):
-        pc(b), r{0}, ir(0), sr(2), sp(256), msp(sp), base(b), limit(l), prog(p),
-        cpu_time(0), wait_time(0), wait_time_begin(0), io_time(0), io_time_begin(0) { }
+        pc(b), ir(0), sr(2), sp(256), msp(sp), base(b), limit(l), prog(p),
+        cpu_time(0), wait_time(0), wait_time_begin(0), io_time(0), io_time_begin(0) {
+            for (int i = 0; i < 4; i++) {
+                r[i] = 0;
+            }
+        }
 friend
     class OS;
 };

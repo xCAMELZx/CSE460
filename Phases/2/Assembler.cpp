@@ -79,7 +79,7 @@ int Assembler::assemble(fstream& in, fstream& out)
                 throw NullPointerException();
             else instruction = (this->*jumpTable[opCode])(str);
 
-        } catch (NullPointerException e) {
+        } catch (NullPointerException &e) {
             cerr << e.what() << endl;
             return error;
         }
@@ -458,7 +458,7 @@ int Assembler::call(istringstream & str)
     return inst;
 }
 
-int Assembler::_return(istringstream & str)
+int Assembler::_return(istringstream & str __attribute__((unused)))
 {
     int inst=21;
     inst = inst<<11;
@@ -487,14 +487,14 @@ int Assembler::_write(istringstream & str)
     return inst;
 }
 
-int Assembler::halt(istringstream & str)
+int Assembler::halt(istringstream & str __attribute__((unused)))
 {
     int inst=24;
     inst = inst<<11;
     return inst;
 }
 
-int Assembler::noop(istringstream & str)
+int Assembler::noop(istringstream & str __attribute__((unused)))
 {
     int inst=25;
     inst = inst<<11;

@@ -24,11 +24,7 @@ using namespace std;
 OS::OS()
 {
     // Gather processes info
-    #if _WIN32 || defined(__CYGWIN32__)
-        system("dir /B *.s > progs");
-    #else
-        system("ls *.s > progs");
-    #endif
+    system("ls *.s > progs");
     progs.open("./progs", ios::in);
     if (!progs.is_open()) {
         cout << "Couldn't open progs file!" << endl;
@@ -106,11 +102,12 @@ OS::OS()
     }
     sys_time = 0;
     idle_time = 0;
+    system("rm progs");
 }
 
 OS::~OS()
 {
-    // Calculate metrics
+    // Calculating Measurements
     int systemTime = idle_time + sys_time;
     double systemUtilization = 1.0 - ((double) idle_time) / ((double) vm.clock);
     int userClocks = 0;
@@ -132,6 +129,7 @@ OS::~OS()
         currPcb->out << "    Turnaround time = " << currPcb->turn_around_time << " ticks\n";
         currPcb->out << "    I/O time = " << currPcb->io_time << " ticks\n";
         currPcb->out << "    Largest stack size = " << vm.msize - currPcb->msp << endl;
+
         currPcb->out << "\nFull VM Statistics:\n" << setprecision(2);
         currPcb->out << "    System Time = " << systemTime << " ticks\n";
         currPcb->out << "    System CPU Utilization = " << systemUtilization << " %\n";

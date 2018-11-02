@@ -1,0 +1,16 @@
+5050
+
+Process terminated because of halt
+
+This process Statistics:
+    CPU time = 507 ticks
+    Waiting time = 53187 ticks
+    Turnaround time = 2831 ticks
+    I/O time = 92 ticks
+    Largest stack size = 0
+
+Full VM Statistics:
+    System Time = 1097 ticks
+    System CPU Utilization = 0.99 %
+    User CPU Utilization = 0.74%
+    Throughput: = 1.44 proc/s
